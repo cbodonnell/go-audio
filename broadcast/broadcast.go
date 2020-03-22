@@ -12,6 +12,7 @@ import (
 	"github.com/gordonklaus/portaudio"
 )
 
+// Block struct
 type Block struct {
 	Buffer []float32 `json:"buffer"`
 	I      int       `json:"i"`
@@ -32,7 +33,7 @@ func main() {
 		for i := range buffer {
 			block.Buffer[i] = in[i]
 		}
-		// http POST buffer to server
+
 		b, err := json.Marshal(block)
 		chk(err)
 		url := "http://localhost:8080/audio"
@@ -59,18 +60,22 @@ func main() {
 	fmt.Println("Broadcasting.  Press Ctrl-C to stop.")
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, os.Kill)
-	for {
-		select {
-		case <-sig:
-			return
-		default:
-		}
-	}
+	waitForSignal(sig)
 	chk(stream.Stop())
 }
 
 func chk(err error) {
 	if err != nil {
 		panic(err)
+	}
+}
+
+func waitForSignal(sig chan os.Signal) {
+	for {
+		select {
+		case <-sig:
+			return
+		default:
+		}
 	}
 }

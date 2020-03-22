@@ -13,19 +13,11 @@ import (
 	"github.com/gordonklaus/portaudio"
 )
 
+// Latest struct
 type Latest struct {
 	Success bool `json:"success"`
 	I       int  `json:"i"`
 }
-
-// type Chunk struct {
-// 	Blocks []Block `json:"blocks"`
-// }
-
-// type Block struct {
-// 	Buffer []float32 `json:"buffer"`
-// 	I      int       `json:"i"`
-// }
 
 const sampleRate = 44100
 const bufferTime = 1
@@ -47,10 +39,7 @@ func main() {
 	fmt.Printf("Latest block: %d\n", i)
 
 	buffer := make([]float32, bufferSize)
-
-	// updateChunk(0)
 	stream, err := portaudio.OpenDefaultStream(0, 1, sampleRate, bufferSize, func(out []float32) {
-		// resp, err := http.Get("http://localhost:8080/audio")
 		resp, err := http.Get(fmt.Sprintf("http://localhost:8080/audio/%d", i))
 		chk(err)
 		body, _ := ioutil.ReadAll(resp.Body)
@@ -63,18 +52,11 @@ func main() {
 	})
 	chk(err)
 	chk(stream.Start())
-
 	fmt.Println("Listening.  Press Ctrl-C to stop.")
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, os.Kill)
-	for {
-		select {
-		case <-sig:
-			return
-		default:
-		}
-	}
+	waitForSignal(sig)
 	chk(stream.Stop())
 }
 
@@ -84,10 +66,12 @@ func chk(err error) {
 	}
 }
 
-// func updateChunk(i int) {
-// 	resp, err := http.Get(fmt.Sprintf("http://localhost:8080/audio/%d", i))
-// 	chk(err)
-// 	body, _ := ioutil.ReadAll(resp.Body)
-// 	err = json.Unmarshal(body, &chunk)
-// 	// fmt.Println("Updated Chunk")
-// }
+func waitForSignal(sig chan os.Signal) {
+	for {
+		select {
+		case <-sig:
+			return
+		default:
+		}
+	}
+}

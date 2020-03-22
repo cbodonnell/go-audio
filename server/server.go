@@ -13,20 +13,22 @@ import (
 	"github.com/gordonklaus/portaudio"
 )
 
-type Chunk struct {
-	Blocks []Block `json:"blocks"`
-}
+// Configuration
+var recent = 5 // number of 'recent' blocks
 
+// Block struct
 type Block struct {
 	Buffer []float32 `json:"buffer"`
 	I      int       `json:"i"`
 }
 
+// Status struct
 type Status struct {
 	I      int  `json:"i"`
 	Status bool `json:"success"`
 }
 
+// Latest struct
 type Latest struct {
 	Success bool `json:"success"`
 	I       int  `json:"i"`
@@ -74,39 +76,6 @@ func chk(err error) {
 	}
 }
 
-func getChunk(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	i, err := strconv.Atoi(params["i"])
-	chk(err)
-	fmt.Printf("Getting chunk for i: %d", i)
-	// flusher, ok := w.(http.Flusher)
-	// if !ok {
-	// 	panic("expected http.ResponseWriter to be an http.Flusher")
-	// }
-
-	// w.Header().Set("Connection", "Keep-Alive")
-	// w.Header().Set("Access-Control-Allow-Origin", "*")
-	// w.Header().Set("X-Content-Type-Options", "nosniff")
-	// w.Header().Set("Transfer-Encoding", "chunked")
-	w.Header().Set("Content-Type", "application/json")
-
-	var chunk Chunk
-	for _, block := range blocks {
-		if block.I >= i {
-			chunk.Blocks = append(chunk.Blocks, block)
-		}
-		if len(chunk.Blocks) > 4 {
-			break
-		}
-	}
-	json.NewEncoder(w).Encode(chunk)
-	// for true {
-	// 	binary.Write(w, binary.BigEndian, &chunk)
-	// 	flusher.Flush() // Trigger "chunked" encoding and send a chunk...
-	// 	return
-	// }
-}
-
 func getBlock(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	i, err := strconv.Atoi(params["i"])
@@ -126,7 +95,7 @@ func getBlock(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "audio/wave")
 	for true {
 		binary.Write(w, binary.BigEndian, &buffer)
-		flusher.Flush() // Trigger "chunked" encoding and send a chunk...
+		flusher.Flush()
 		return
 	}
 }
@@ -164,18 +133,17 @@ func getLatestBlock(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "audio/wave")
 	for true {
 		binary.Write(w, binary.BigEndian, &buffer)
-		flusher.Flush() // Trigger "chunked" encoding and send a chunk...
+		flusher.Flush()
 		return
 	}
 }
 
 func getRecentBlocks() []Block {
 	n := len(blocks)
-	if n < 5 {
+	if n < recent {
 		return blocks[n-1 : n]
-	} else {
-		return blocks[n-5 : n]
 	}
+	return blocks[n-recent : n]
 }
 
 func setBlock(w http.ResponseWriter, r *http.Request) {
