@@ -1,16 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
-
-	"github.com/gordonklaus/portaudio"
 )
 
 // Configuration
@@ -37,21 +37,6 @@ var buffer []float32 = make([]float32, bufferSize)
 var blocks []Block
 
 func main() {
-
-	portaudio.Initialize()
-	defer portaudio.Terminate()
-
-	stream, err := portaudio.OpenDefaultStream(1, 0, sampleRate, len(buffer), func(in []float32) {
-		for i := range buffer {
-			buffer[i] = in[i]
-		}
-	})
-
-	chk(err)
-	chk(stream.Start())
-	fmt.Println("Stream started.")
-	defer stream.Close()
-
 	// Init router
 	r := mux.NewRouter()
 
@@ -61,6 +46,7 @@ func main() {
 	r.HandleFunc("/audio", setBlock).Methods("POST")
 
 	// Run server
+	fmt.Println("Server started.")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
@@ -142,9 +128,10 @@ func getRecentBlocks() []Block {
 
 func setBlock(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	var block Block
-	err := json.NewDecoder(r.Body).Decode(&block)
-	chk(err)
+	block := Block{Buffer: make([]float32, bufferSize), I: len(blocks)}
+	body, _ := ioutil.ReadAll(r.Body)
+	responseReader := bytes.NewReader(body)
+	binary.Read(responseReader, binary.BigEndian, &block.Buffer)
 	blocks = append(blocks, block)
 	fmt.Printf("Set block: %d\n", block.I)
 	status := &Status{I: block.I, Success: true}

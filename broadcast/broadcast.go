@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +17,12 @@ import (
 type Block struct {
 	Buffer []float32 `json:"buffer"`
 	I      int       `json:"i"`
+}
+
+// Status struct
+type Status struct {
+	I       int  `json:"i"`
+	Success bool `json:"success"`
 }
 
 const sampleRate = 44100
@@ -34,24 +41,35 @@ func main() {
 			block.Buffer[i] = in[i]
 		}
 
-		b, err := json.Marshal(block)
-		chk(err)
+		buf := new(bytes.Buffer)
+		for _, v := range block.Buffer {
+			err := binary.Write(buf, binary.BigEndian, v)
+			chk(err)
+		}
+
 		url := "http://localhost:8080/audio"
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
+		req, err := http.NewRequest("POST", url, buf)
 		chk(err)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Connection", "Keep-Alive")
+		req.Header.Set("Access-Control-Allow-Origin", "*")
+		req.Header.Set("X-Content-Type-Options", "nosniff")
+		req.Header.Set("Transfer-Encoding", "chunked")
+		req.Header.Set("Content-Type", "audio/wave")
 
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		chk(err)
 		defer resp.Body.Close()
-		fmt.Printf("Sent block: %d\n", block.I)
-		block.I++
 
 		fmt.Println("response Status:", resp.Status)
 		fmt.Println("response Headers:", resp.Header)
-		body, _ := ioutil.ReadAll(resp.Body)
-		fmt.Println("response Body:", string(body))
+
+		body, err := ioutil.ReadAll(resp.Body)
+		var status Status
+		err = json.Unmarshal(body, &status)
+		chk(err)
+		fmt.Printf("Sent block: %d\n", status.I)
+		block.I = status.I
 	})
 	chk(err)
 	defer stream.Close()
