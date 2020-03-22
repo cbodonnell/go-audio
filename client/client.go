@@ -13,10 +13,10 @@ import (
 	"github.com/gordonklaus/portaudio"
 )
 
-// Latest struct
-type Latest struct {
-	Success bool `json:"success"`
+// Status struct
+type Status struct {
 	I       int  `json:"i"`
+	Success bool `json:"success"`
 }
 
 const sampleRate = 44100
@@ -32,10 +32,10 @@ func main() {
 	resp, err := http.Get("http://localhost:8080/audio/latest")
 	chk(err)
 	body, _ := ioutil.ReadAll(resp.Body)
-	var latest Latest
-	err = json.Unmarshal(body, &latest)
+	var status Status
+	err = json.Unmarshal(body, &status)
 	chk(err)
-	i = latest.I
+	i = status.I
 	fmt.Printf("Latest block: %d\n", i)
 
 	buffer := make([]float32, bufferSize)

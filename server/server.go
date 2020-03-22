@@ -24,14 +24,8 @@ type Block struct {
 
 // Status struct
 type Status struct {
-	I      int  `json:"i"`
-	Status bool `json:"success"`
-}
-
-// Latest struct
-type Latest struct {
-	Success bool `json:"success"`
 	I       int  `json:"i"`
+	Success bool `json:"success"`
 }
 
 const sampleRate = 44100
@@ -104,8 +98,8 @@ func getLatestBlockNum(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	i := len(blocks) - 1
 	fmt.Printf("Latest block num: %d\n", i)
-	latest := &Latest{Success: true, I: i}
-	json.NewEncoder(w).Encode(latest)
+	status := &Status{I: i, Success: true}
+	json.NewEncoder(w).Encode(status)
 }
 
 func getLatestBlock(w http.ResponseWriter, r *http.Request) {
@@ -153,6 +147,6 @@ func setBlock(w http.ResponseWriter, r *http.Request) {
 	chk(err)
 	blocks = append(blocks, block)
 	fmt.Printf("Set block: %d\n", block.I)
-	status := &Status{I: block.I, Status: true}
+	status := &Status{I: block.I, Success: true}
 	json.NewEncoder(w).Encode(status)
 }
