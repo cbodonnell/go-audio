@@ -23,6 +23,7 @@ func main() {
 // addHeaders will act as middleware to give us CORS support
 func addHeaders(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "audio/mpegurl")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		h.ServeHTTP(w, r)
 	}
