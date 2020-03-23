@@ -1,2 +1,5 @@
 build/
 *.aif
+*.mp3
+hls/songs
+commands
