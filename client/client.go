@@ -20,7 +20,7 @@ type Status struct {
 }
 
 const sampleRate = 44100
-const bufferTime = 1
+const bufferTime = 4
 const bufferSize = sampleRate * bufferTime
 
 var i int = 0
@@ -38,13 +38,14 @@ func main() {
 	i = status.I
 	fmt.Printf("Latest block: %d\n", i)
 
-	buffer := make([]float32, bufferSize)
-	stream, err := portaudio.OpenDefaultStream(0, 1, sampleRate, bufferSize, func(out []float32) {
+	buffer := make([]int32, bufferSize)
+	stream, err := portaudio.OpenDefaultStream(0, 1, sampleRate, len(buffer), func(out []int32) {
 		resp, err := http.Get(fmt.Sprintf("http://localhost:8080/audio/%d", i))
 		chk(err)
 		body, _ := ioutil.ReadAll(resp.Body)
 		responseReader := bytes.NewReader(body)
 		binary.Read(responseReader, binary.BigEndian, &buffer)
+		// fmt.Println(buffer)
 		for i := range out {
 			out[i] = buffer[i]
 		}

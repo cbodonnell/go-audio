@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
 	// configure the songs directory name and port
 	const songsDir = "./hls/songs"
 	const port = 8080
+
+	// r := mux.NewRouter()
 
 	// add a handler for the song files
 	http.Handle("/", addHeaders(http.FileServer(http.Dir(songsDir))))

@@ -15,8 +15,8 @@ import (
 
 // Block struct
 type Block struct {
-	Buffer []float32 `json:"buffer"`
-	I      int       `json:"i"`
+	Buffer []int32 `json:"buffer"`
+	I      int     `json:"i"`
 }
 
 // Status struct
@@ -26,23 +26,26 @@ type Status struct {
 }
 
 const sampleRate = 44100
-const bufferTime = 1
+const bufferTime = 4
 const bufferSize = sampleRate * bufferTime
 
 func main() {
 
 	portaudio.Initialize()
 	defer portaudio.Terminate()
-	buffer := make([]float32, bufferSize)
+	buffer := make([]int32, bufferSize)
 	block := &Block{Buffer: buffer, I: 0}
 
-	stream, err := portaudio.OpenDefaultStream(1, 0, sampleRate, len(buffer), func(in []float32) {
+	device, err := portaudio.DefaultInputDevice()
+	println(device.Name)
+
+	stream, err := portaudio.OpenDefaultStream(1, 0, sampleRate, len(buffer), func(in []int32) {
 		for i := range buffer {
-			block.Buffer[i] = in[i]
+			buffer[i] = in[i]
 		}
 
 		buf := new(bytes.Buffer)
-		for _, v := range block.Buffer {
+		for _, v := range buffer {
 			err := binary.Write(buf, binary.BigEndian, v)
 			chk(err)
 		}
