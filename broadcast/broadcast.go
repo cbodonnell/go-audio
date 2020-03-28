@@ -26,7 +26,7 @@ type Status struct {
 }
 
 const sampleRate = 44100
-const bufferTime = 4
+const bufferTime = 1
 const bufferSize = sampleRate * bufferTime
 
 func main() {

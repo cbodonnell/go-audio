@@ -33,7 +33,7 @@ type Status struct {
 }
 
 const sampleRate = 44100
-const bufferTime = 4
+const bufferTime = 1
 const bufferSize = sampleRate * bufferTime
 
 var buffer []int32 = make([]int32, bufferSize)
@@ -150,11 +150,13 @@ func setBlock(w http.ResponseWriter, r *http.Request) {
 	body, _ := ioutil.ReadAll(r.Body)
 	responseReader := bytes.NewReader(body)
 
+	blockNum := len(blocks)
+
 	path := "server/streams/stream_id"
 	newpath := filepath.Join(".", path)
 	os.MkdirAll(newpath, os.ModePerm)
 
-	fileName := path + "/stream"
+	fileName := path + fmt.Sprintf("/stream_%d", blockNum)
 	if !strings.HasSuffix(fileName, ".aiff") {
 		fileName += ".aiff"
 	}
@@ -205,29 +207,29 @@ func setBlock(w http.ResponseWriter, r *http.Request) {
 	chk(binary.Write(f, binary.BigEndian, int32(4*nSamples+8)))
 	chk(f.Close())
 
+	// input := path + "/input.txt"
+	// file, err := os.OpenFile(input, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+	// if _, err := file.WriteString(fmt.Sprintf("file 'stream_%d.aiff'\n", blockNum)); err != nil {
+	// 	log.Fatal(err)
+	// }
+	// //Print the contents of the file
+	// data, err := ioutil.ReadFile(input)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Println(string(data))
+	// chk(file.Close())
+
 	// do ffmpeg
 	// -hls_playlist_type event -hls_flags append_list+omit_endlist hls/songs/recording/recording.m3u8
-	app := "ffmpeg"
+	// ffmpeg := "ffmpeg -f concat -i server/streams/stream_id/input.txt -c copy -c:a libmp3lame -b:a 128k -map 0:0 -f hls -hls_time 4 -hls_playlist_type event server/streams/stream_id/output.m3u8"
+	ffmpeg := fmt.Sprintf("ffmpeg -i server/streams/stream_id/stream_%d.aiff -filter:v 'setpts=1.0' -c:a libmp3lame -b:a 128k -map 0:0 -f hls -hls_time 1 -hls_playlist_type event -hls_flags append_list+omit_endlist server/streams/stream_id/stream.m3u8", blockNum)
+	ffmpegArgs := strings.Split(ffmpeg, " ")
 
-	arg0 := "-i"
-	arg1 := "server/streams/stream_id/stream.aiff"
-	arg2 := "-c:a"
-	arg3 := "libmp3lame"
-	arg4 := "-b:a"
-	arg5 := "128k"
-	arg6 := "-map"
-	arg7 := "0:0"
-	arg8 := "-f"
-	arg9 := "hls"
-	arg10 := "-hls_time"
-	arg11 := "2"
-	arg12 := "-hls_playlist_type"
-	arg13 := "event"
-	arg14 := "-hls_flags"
-	arg15 := "append_list+omit_endlist"
-	arg16 := "server/streams/stream_id/stream.m3u8"
-
-	cmd := exec.Command(app, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16)
+	cmd := exec.Command(ffmpegArgs[0], ffmpegArgs[1:]...)
 	err = cmd.Run()
 
 	if err != nil {
@@ -235,7 +237,7 @@ func setBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	block := Block{Buffer: in, I: len(blocks)}
+	block := Block{Buffer: in, I: blockNum}
 	blocks = append(blocks, block)
 	fmt.Printf("Set block: %d\n", block.I)
 	status := Status{I: block.I, Success: true}
